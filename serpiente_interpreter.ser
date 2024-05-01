@@ -1,0 +1,134 @@
+def imprimir(*args):
+    for arg in args:
+        print(arg, end='')
+
+def interpretar(programa):
+    # Dividir el programa en lineas
+    lineas = programa.strip().split('\n')
+
+    # Variable para almacenar valores de variables
+    variables = {}
+    en_if = False  # Initialize en_if
+
+    for linea in lineas:
+        if linea.strip():   # Ignorar lineas en blanco
+            # Remover espacios adicionales y separar la instruccion de los argumentos
+            partes = linea.strip().split(' ')
+            
+            # Verificar si hay asignacion de variable
+            if len(partes) > 2 and partes[1] == '=':
+                # Obtener el nombre de la variable y la expression
+                variable = partes[0].strip()
+                expresion = ' '.join(partes[2:])
+
+                # Evaluar la expresion y asignar el valor a la variable
+                try:
+                    resultado = eval(expresion, variables)
+                    variables[variable] = resultado
+                except:
+                    print("Error al evaluar la expresion:", expresion)
+
+            # Verificar si hay un bucle for
+            elif partes[0] == 'para' and partes[2] == 'en':
+                variable = partes[1].strip()
+                print(variable)
+                rango = partes[3].strip(':')
+                print(rango)
+                try:
+                    if rango.isdigit():  # Check if the range is a single integer
+                        rango_evaluado = range(int(rango))
+                    else:
+                        rango_evaluado = eval(rango, variables)
+                    for valor in rango_evaluado:
+                        variables[variable] = valor
+                        # Ejecutar el cuerpo del bucle
+                        local_vars = dict(variables)
+                        local_vars.update(locals())  # Add local variables to the dictionary
+                        for linea_bucle in lineas[lineas.index(linea)+1:]:
+                            # Si encontramos una línea vacía o el fin del bucle, salimos
+                            if not linea_bucle.strip() or linea_bucle.strip().startswith('fin'):
+                                break
+                            # Ejecutar la línea del bucle
+                            partes_bucle = linea_bucle.strip().split(' ')
+                            #imprimir(partes_bucle[0].strip('imprimir"()'))
+                            if partes_bucle[0].startswith('imprimir'):
+                                imp = partes_bucle[0].strip('imprimir(,"')
+                                imprimir(imp, eval(partes_bucle[1].strip(')'), local_vars))
+                                imprimir('\n')
+                            elif partes_bucle[0].replace('imprimir()', '').strip() in variables:
+                                imprimir(*partes_bucle[1:])
+                            else:
+                                try:
+                                    resultado = eval(' '.join(partes_bucle), globals(), local_vars)
+                                    imprimir(resultado)
+                                except Exception as e:
+                                    print("Error:", e)
+                        imprimir('\n')
+                except Exception as e:
+                    print("Error al evaluar el rango del bucle for:", rango)
+                    print(e)
+
+            # Verificar si hay una estructura if
+            elif partes[0] == 'si':
+                en_if = True  # Set en_if to True
+                try:
+                    #imprimir(' '.join(partes[1:]).strip(':'))
+                    condicion = eval(' '.join(partes[1:]).strip(':'), variables)
+                    #imprimir(condicion)
+                    #imprimir("\n")
+                    if condicion:
+                        for linea_if in lineas[lineas.index(linea)+1:]:
+                            if linea_if.strip().startswith('fin'):
+                                break
+                            partes_linea_if = linea_if.strip().split(' ')
+                            imprimir(partes_linea_if[0])
+                            if partes_linea_if[0].startswith('imprimir("'):
+                                imp = partes_linea_if[0].strip('imprimir(,"')
+                                imprimir(imp, eval(partes_linea_if[1].strip(')'), variables))
+                            elif partes_linea_if[0].replace('imprimir()', '').strip() in variables:
+                                imprimir(*partes_linea_if[1:])
+                            else:
+                                try:
+                                    resultado = eval(' '.join(partes_linea_if), globals(), variables)
+                                    imprimir(resultado)
+                                except Exception as e:
+                                    print("Error:", e)
+                                    continue  # Skip to the next iteration of the loop
+                    else:
+                        en_if = False  # Reset en_if
+                except Exception as e:
+                    print("Error al evaluar la condicion:", ' '.join(partes[1:]).strip(':'))
+                    print(e)
+
+            # Verificar si estamos dentro de un if y no es el fin del bloque
+            elif en_if and not linea.strip().startswith('fin'):
+                continue  # Skip to the next iteration of the loop
+
+    assigned_variables = {k: v for k, v in variables.items() if not k.startswith('__')}
+    print("Variables:", assigned_variables)
+
+if __name__ == "__main__":
+    # Ejecutar programa
+    programa = """
+    x = 5
+    y = 3.5
+    z = x + y
+    mensaje = "Hola, mundo!"
+    imprimir(mensaje)
+    para i en 3:
+        imprimir("Iteracion:", i)
+        imprimir( x+1)
+        fin
+    r = 6
+        
+    """
+
+    programa2 = """
+    x = 5
+    y = 3
+    si x > y : 
+        imprimir(" x es mayor que y")
+        
+    
+    """
+    interpretar(programa)
